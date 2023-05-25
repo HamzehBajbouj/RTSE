@@ -15,7 +15,7 @@ COMMON = -mmcu=$(MCU)
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON)
-CFLAGS += -Wall -gdwarf-2 -std=gnu99   -DF_CPU=16000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+CFLAGS += -Wall -gdwarf-2 -std=gnu99     -DF_CPU=16000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 
 ## Assembly specific flags
@@ -40,7 +40,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 OBJECTS = robosample.o 
 
 ## Objects explicitly added by the user
-LINKONLYOBJECTS = "C:\RTprog2023\obj\hal_robo.o" "C:\RTprog2023\obj\kernel.o" 
+LINKONLYOBJECTS = "C:\RTSE\obj\kernel.o" "C:\RTSE\obj\hal_robo.o" 
 
 ## Build
 all: $(TARGET) robosample.hex robosample.eep robosample.lss## Compile

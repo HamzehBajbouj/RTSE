@@ -8,11 +8,16 @@
 #include "..\inc\hal_robo.h"                /*   and RoboKar HAL                        */
 
 #define TASK_STK_SZ            128          /* Size of each task's stacks (# of bytes)  */
-#define TASK_START_PRIO          1          /* Highest priority                         */
+#define TASK_START_PRIO          2          /* Highest priority                         */
 #define TASK_CHKCOLLIDE_PRIO     5
 #define TASK_CTRLMOTOR_PRIO      3
-#define TASK_NAVIG_PRIO          4          /* Lowest priority                          */
-#define TASK_LINE_PRIO          2
+#define TASK_NAVIG_PRIO          1         /* Lowest priority                          */
+#define TASK_LINE_PRIO          4
+
+
+#define TARGET_LINE_POSITION 50       
+#define MAX_INTEGRAL_TERM 100  
+
 
 OS_STK TaskStartStk[TASK_STK_SZ];           /* TaskStartTask stack                      */
 OS_STK ChkCollideStk[TASK_STK_SZ];          /* Task StopOnCollide stack                 */
@@ -26,6 +31,8 @@ struct robostate
     int rspeed;                             /* right motor speed  (-100 -- +100)        */
     int lspeed;                             /* leftt motor speed  (-100 -- +100)        */
     char obstacle;                          /* obstacle? 1 = yes, 0 = no                */
+    double prevError;
+    double integral;
 } myrobot;
 
 /*------High pririority task----------*/
@@ -52,8 +59,34 @@ void CntrlMotors (void *data)
         speed_r = myrobot.rspeed;
         speed_l = myrobot.lspeed;
         robo_motorSpeed(speed_l, speed_r);
-        OSTimeDlyHMSM(0, 0, 0, 250);                /* Task period ~ 250 ms              */
+        OSTimeDlyHMSM(0, 0, 0, 5);                /* Task period ~ 250 ms              */
     }
+}
+
+
+int normalizeSensorReading (int sensorReading)
+{
+//    switch statement, if 0 then 0, if 7 then then 150, if 2 then 50
+    switch (sensorReading)
+    {
+        case 0:
+            return 0;
+        case 1:
+            return 25;
+        case 2: 
+            return 50;
+        case 3:
+            return 75;
+        case 4:
+            return 100;
+        case 6:
+            return 125;
+        case 7:
+            return 150;
+        default:
+            return 0;       
+    }
+
 }
 
 /* --- Task for navigating robot ----
@@ -62,25 +95,50 @@ void CntrlMotors (void *data)
 
 void Navig (void *data)
 {
+
+     // PID controller variables
+    double Kp = 1;     // Proportional gain
+    double Ki = 0.0;     // Integral gain
+    double Kd = 0.0;     // Derivative gain
+
+
+
     for (;;)
     {
-        if (myrobot.obstacle == 1)                  /* If blocked then reverse              */
-        {
-            myrobot.rspeed   = -LOW_SPEED;          /* REVERSE */
-            myrobot.lspeed   = -LOW_SPEED;
-        }
-        else                                        /* obstacle is far away & no collision   */
-        {
-            myrobot.rspeed   = MEDIUM_SPEED;        /* move forward with medium speed        */
-            myrobot.lspeed   = MEDIUM_SPEED;
-        }
 
-		if (robo_lightSensor() > 60)                /* it is too bright, I'm photophobia     */
-		{
-			myrobot.rspeed   = -LOW_SPEED;          /* turn right to avoid                   */
-            myrobot.lspeed   =  LOW_SPEED;
-		}
-        OSTimeDlyHMSM(0, 0, 0, 500);                /* Task period ~ 500 ms                  */
+        // Line sensor measurement
+        int lineSensorReading = normalizeSensorReading(robo_lineSensor());
+
+        cprintf("line sensor reading: %d", lineSensorReading);
+        robo_LED_on();
+
+
+          // Calculate error
+        double error = TARGET_LINE_POSITION - lineSensorReading;
+
+         // Update integral term
+        myrobot.integral += error;
+
+        // Limit the integral term to prevent excessive accumulation
+        if (myrobot.integral > MAX_INTEGRAL_TERM)
+            myrobot.integral = MAX_INTEGRAL_TERM;
+        else if (myrobot.integral < -MAX_INTEGRAL_TERM)
+            myrobot.integral = -MAX_INTEGRAL_TERM;
+
+        // Calculate control signal
+        double controlSignal = (Kp * error) + (Ki * myrobot.integral) + (Kd * (error - myrobot.prevError));
+
+        // Update previous error
+        myrobot.prevError = error;
+
+        // Update motor speeds based on control signal
+        myrobot.rspeed = MEDIUM_SPEED - (int)controlSignal;
+        myrobot.lspeed = MEDIUM_SPEED + (int)controlSignal;
+
+
+        cprintf("rspeed: %d, lspeed: %d", myrobot.rspeed, myrobot.lspeed);
+       
+        OSTimeDlyHMSM(0, 0, 0, 10);                /* Task period ~ 500 ms                  */
     }
 }
 
@@ -92,9 +150,9 @@ void TestLineSensor (void *data)
 	//cputchar(robo_lineSensor());
 
 //	cputchar(	robo_lightSensor());
-	 cprintf("%d",robo_lineSensor());
+	//  cprintf("%d",robo_lineSensor());
 //	 cprintf("fdsd");
-      OSTimeDlyHMSM(0, 0, 0, 50);               
+    //   OSTimeDlyHMSM(0, 0, 0, 50);               
     }
 }
 
@@ -126,7 +184,7 @@ void TaskStart( void *data )
     while(1)
     {
         OSTimeDlyHMSM(0, 0, 5, 0);                          /* Task period ~ 5 secs          */
-        robo_LED_toggle();                                  /* Show that we are alive        */
+        // robo_LED_toggle();                                  /* Show that we are alive        */
 	//	cprintf("%d",robo_proxSensor());
 	//	cprintf("ddsd");
     }
@@ -141,8 +199,11 @@ int main( void )
     robo_motorSpeed(STOP_SPEED, STOP_SPEED);               /* Stop the robot                 */
     myrobot.rspeed   = STOP_SPEED;                         /* Initialize myrobot states      */
     myrobot.lspeed   = STOP_SPEED;
-    myrobot.obstacle = 0;                                  /*  No collisioin                 */
+    myrobot.obstacle = 0;    
+                                  /*  No collisioin                 */
 
+    myrobot.prevError = 0.0;
+    myrobot.integral = 0.0;
     OSTaskCreate(TaskStart,                                /* create TaskStart Task          */
                 (void *)0,
                 (void *)&TaskStartStk[TASK_STK_SZ - 1],
