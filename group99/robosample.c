@@ -6,6 +6,7 @@
 
 #include "..\inc\kernel.h"                  /* Always include these to use uCOS-II      */
 #include "..\inc\hal_robo.h"                /*   and RoboKar HAL                        */
+#include "util.h"
 
 #define TASK_STK_SZ            128          /* Size of each task's stacks (# of bytes)  */
 #define TASK_START_PRIO          1          /* Highest priority                         */
@@ -88,15 +89,33 @@ void TestLineSensor (void *data)
 {
     for (;;)
     {
-
-	//cputchar(robo_lineSensor());
-
-//	cputchar(	robo_lightSensor());
 	 cprintf("%d",robo_lineSensor());
-//	 cprintf("fdsd");
-      OSTimeDlyHMSM(0, 0, 0, 50);               
+     OSTimeDlyHMSM(0, 0, 0, 50);               
     }
 }
+
+
+/*------Navigation controllers utils----------*/
+void turnRight(void *data){
+    myrobot.rspeed   = -MEDIUM_SPEED;       
+    myrobot.lspeed   = MEDIUM_SPEED;
+}
+
+void turnLeft(void *data){
+    myrobot.rspeed   = MEDIUM_SPEED;       
+    myrobot.lspeed   = -MEDIUM_SPEED;
+}
+
+void goStraight(void *data){
+    myrobot.rspeed   = HIGH_SPEED;       
+    myrobot.lspeed   = HIGH_SPEED;
+}
+
+void goBackword(void *data){
+    myrobot.rspeed   = -HIGH_SPEED;       
+    myrobot.lspeed   = -HIGH_SPEED;
+}
+
 
 /*------Highest pririority task----------*/
 /* Create all other tasks here           */
@@ -127,8 +146,7 @@ void TaskStart( void *data )
     {
         OSTimeDlyHMSM(0, 0, 5, 0);                          /* Task period ~ 5 secs          */
         robo_LED_toggle();                                  /* Show that we are alive        */
-	//	cprintf("%d",robo_proxSensor());
-	//	cprintf("ddsd");
+
     }
 
 }
