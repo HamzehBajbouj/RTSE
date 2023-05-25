@@ -156,6 +156,29 @@ void TestLineSensor (void *data)
     }
 }
 
+
+/*------Navigation controllers utils----------*/
+void turnRight(void *data){
+    myrobot.rspeed   = -MEDIUM_SPEED;       
+    myrobot.lspeed   = MEDIUM_SPEED;
+}
+
+void turnLeft(void *data){
+    myrobot.rspeed   = MEDIUM_SPEED;       
+    myrobot.lspeed   = -MEDIUM_SPEED;
+}
+
+void goStraight(void *data){
+    myrobot.rspeed   = HIGH_SPEED;       
+    myrobot.lspeed   = HIGH_SPEED;
+}
+
+void goBackword(void *data){
+    myrobot.rspeed   = -HIGH_SPEED;       
+    myrobot.lspeed   = -HIGH_SPEED;
+}
+
+
 /*------Highest pririority task----------*/
 /* Create all other tasks here           */
 void TaskStart( void *data )
