@@ -9,10 +9,10 @@
 
 #define TASK_STK_SZ            128          /* Size of each task's stacks (# of bytes)  */
 #define TASK_START_PRIO          1          /* Highest priority                         */
-#define TASK_CHKCOLLIDE_PRIO     2
+#define TASK_CHKCOLLIDE_PRIO     5
 #define TASK_CTRLMOTOR_PRIO      3
 #define TASK_NAVIG_PRIO          4          /* Lowest priority                          */
-#define TASK_LINE_PRIO          5    
+#define TASK_LINE_PRIO          2
 
 OS_STK TaskStartStk[TASK_STK_SZ];           /* TaskStartTask stack                      */
 OS_STK ChkCollideStk[TASK_STK_SZ];          /* Task StopOnCollide stack                 */
@@ -89,8 +89,12 @@ void TestLineSensor (void *data)
     for (;;)
     {
 
-	 cputchar(robo_lineSensor());
-      OSTimeDlyHMSM(0, 0, 0, 250);               
+	//cputchar(robo_lineSensor());
+
+//	cputchar(	robo_lightSensor());
+	 cprintf("%d",robo_lineSensor());
+//	 cprintf("fdsd");
+      OSTimeDlyHMSM(0, 0, 0, 50);               
     }
 }
 
@@ -123,6 +127,8 @@ void TaskStart( void *data )
     {
         OSTimeDlyHMSM(0, 0, 5, 0);                          /* Task period ~ 5 secs          */
         robo_LED_toggle();                                  /* Show that we are alive        */
+	//	cprintf("%d",robo_proxSensor());
+	//	cprintf("ddsd");
     }
 
 }
