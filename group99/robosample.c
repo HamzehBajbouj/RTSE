@@ -15,8 +15,8 @@
 #define TASK_LINE_PRIO          4
 
 
-#define TARGET_LINE_POSITION 50       
-#define MAX_INTEGRAL_TERM 100  
+#define TARGET_LINE_POSITION 1000       
+#define MAX_INTEGRAL_TERM 50000  
 
 
 OS_STK TaskStartStk[TASK_STK_SZ];           /* TaskStartTask stack                      */
@@ -59,7 +59,7 @@ void CntrlMotors (void *data)
         speed_r = myrobot.rspeed;
         speed_l = myrobot.lspeed;
         robo_motorSpeed(speed_l, speed_r);
-        OSTimeDlyHMSM(0, 0, 0, 5);                /* Task period ~ 250 ms              */
+        OSTimeDlyHMSM(0, 0, 0, 10);                /* Task period ~ 250 ms              */
     }
 }
 
@@ -70,21 +70,25 @@ int normalizeSensorReading (int sensorReading)
     switch (sensorReading)
     {
         case 0:
-            return 0;
-        case 1:
-            return 25;
-        case 2: 
-            return 50;
-        case 3:
-            return 75;
-        case 4:
-            return 100;
-        case 6:
-            return 125;
+            return 2000;
+        // turn right:
+        case 1: 
+            return 3000;
+        case 3: 
+            return 1500;
+        // center: 
         case 7:
-            return 150;
-        default:
-            return 0;       
+            return 1000;
+        case 2: 
+            return 1000; 
+        // turn left
+        case 4: 
+            return 0;
+        case 6: 
+            return 500;
+        default: 
+            return 0;
+        
     }
 
 }
@@ -97,9 +101,9 @@ void Navig (void *data)
 {
 
      // PID controller variables
-    double Kp = 1;     // Proportional gain
-    double Ki = 0.0;     // Integral gain
-    double Kd = 0.0;     // Derivative gain
+    double Kp = 0.1;     // Proportional gain
+    double Ki = 0.0000;     // Integral gain
+    double Kd = 0;     // Derivative gain
 
 
 
@@ -107,10 +111,10 @@ void Navig (void *data)
     {
 
         // Line sensor measurement
-        int lineSensorReading = normalizeSensorReading(robo_lineSensor());
-
-        cprintf("line sensor reading: %d", lineSensorReading);
-        robo_LED_on();
+        int rawReading = robo_lineSensor();
+        
+        int lineSensorReading = normalizeSensorReading(rawReading);
+        // cprintf("line sensor reading: %d \r\n", lineSensorReading);
 
 
           // Calculate error
@@ -132,11 +136,21 @@ void Navig (void *data)
         myrobot.prevError = error;
 
         // Update motor speeds based on control signal
-        myrobot.rspeed = MEDIUM_SPEED - (int)controlSignal;
-        myrobot.lspeed = MEDIUM_SPEED + (int)controlSignal;
+        myrobot.rspeed = (MEDIUM_SPEED + (int)controlSignal);
+        myrobot.lspeed = (MEDIUM_SPEED - (int)controlSignal);
+
+        if (myrobot.rspeed > 100)
+            myrobot.rspeed = 100;
+        else if (myrobot.rspeed < -100)
+            myrobot.rspeed = -100;
+
+        if (myrobot.lspeed > 100)
+            myrobot.lspeed = 100;
+        else if (myrobot.lspeed < -100)
+            myrobot.lspeed = -100;
 
 
-        cprintf("rspeed: %d, lspeed: %d", myrobot.rspeed, myrobot.lspeed);
+        // cprintf("rspeed: %d, lspeed: %d \r\n", myrobot.rspeed, myrobot.lspeed);
        
         OSTimeDlyHMSM(0, 0, 0, 10);                /* Task period ~ 500 ms                  */
     }
